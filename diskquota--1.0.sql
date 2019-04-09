@@ -36,6 +36,16 @@ RETURNS void STRICT
 AS 'MODULE_PATHNAME'
 LANGUAGE C;
 
+CREATE VIEW diskquota.show_schema_quota_proximate_view AS
+select pgns.nspname as schema_name, pgc.relnamespace as schema_oid, qc.quotalimitMB as quota_in_mb, sum(ts.size) as nspsize_in_bytes
+from diskquota.table_size as ts,
+        pg_class as pgc,
+        diskquota.quota_config as qc,
+        pg_namespace as pgns
+where ts.tableid = pgc.oid and qc.targetoid = pgc.relnamespace and pgns.oid = pgc.relnamespace
+group by relnamespace, qc.quotalimitMB, pgns.nspname
+order by pgns.nspname;
+
 CREATE VIEW diskquota.show_schema_quota_view AS
 SELECT pg_namespace.nspname as schema_name, pg_class.relnamespace as schema_oid, quota.quotalimitMB as quota_in_mb, sum(pg_total_relation_size(pg_class.oid)) as nspsize_in_bytes
 FROM pg_namespace, pg_class, diskquota.quota_config as quota
